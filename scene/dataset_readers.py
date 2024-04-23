@@ -54,14 +54,14 @@ def getNerfppNorm(cam_info):
     cam_centers = []
 
     for cam in cam_info:
-        W2C = getWorld2View2(cam.R, cam.T)
+        W2C = getWorld2View2(cam.R, cam.T)  # get C2W based on RT, and then modify camera centor in world coordinate, and then invert to RT again. What's the purpose?
         C2W = np.linalg.inv(W2C)
         cam_centers.append(C2W[:3, 3:4])
 
-    center, diagonal = get_center_and_diag(cam_centers)
-    radius = diagonal * 1.1
+    center, diagonal = get_center_and_diag(cam_centers)  # center is the average of camera centers of all source cameras, diagonal is the max distance between the center and source view camera centers.
+    radius = diagonal * 1.1 # the scaling factor 1.1 is used to make sure the bounding box is large enough to cover the whole scene. The value is empirically determined.
 
-    translate = -center
+    translate = -center # why negative?
 
     return {"translate": translate, "radius": radius}
 
@@ -152,7 +152,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
         train_cam_infos = cam_infos
         test_cam_infos = []
 
-    nerf_normalization = getNerfppNorm(train_cam_infos)
+    nerf_normalization = getNerfppNorm(train_cam_infos)  # translate (negative values of average camera centers) and radius (1.1 times the max distance between the average camera center and source view camera centers)
 
     ply_path = os.path.join(path, "sparse/0/points3D.ply")
     bin_path = os.path.join(path, "sparse/0/points3D.bin")
@@ -165,7 +165,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
             xyz, rgb, _ = read_points3D_text(txt_path)
         storePly(ply_path, xyz, rgb)
     try:
-        pcd = fetchPly(ply_path)
+        pcd = fetchPly(ply_path)  # positions, colors, normals of all points in the scene
     except:
         pcd = None
 

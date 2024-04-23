@@ -38,12 +38,11 @@ def loadCam(args, id, cam_info, resolution_scale):
         scale = float(global_down) * float(resolution_scale)
         resolution = (int(orig_w / scale), int(orig_h / scale))
 
-    resized_image_rgb = PILtoTorch(cam_info.image, resolution)
-
-    gt_image = resized_image_rgb[:3, ...]
+    resized_image_rgb = PILtoTorch(cam_info.image, resolution)  # returns a resized tensor of shape (3, height, width), with values in [0, 1], and in RGB order.
+    gt_image = resized_image_rgb[:3, ...]  # remove the alpha channel if it exists
     loaded_mask = None
 
-    if resized_image_rgb.shape[1] == 4:
+    if resized_image_rgb.shape[0] == 4:  # the original code is wrong here, it should be resized_image_rgb.shape[0] not resized_image_rgb.shape[1]
         loaded_mask = resized_image_rgb[3:4, ...]
 
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
@@ -65,7 +64,7 @@ def camera_to_JSON(id, camera : Camera):
     Rt[:3, 3] = camera.T
     Rt[3, 3] = 1.0
 
-    W2C = np.linalg.inv(Rt)
+    W2C = np.linalg.inv(Rt)  
     pos = W2C[:3, 3]
     rot = W2C[:3, :3]
     serializable_array_2d = [x.tolist() for x in rot]

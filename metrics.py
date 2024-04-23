@@ -98,6 +98,6 @@ if __name__ == "__main__":
 
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
-    parser.add_argument('--model_paths', '-m', required=True, nargs="+", type=str, default=[])
+    parser.add_argument('--model_paths', '-m', nargs="+", type=str, default=['/data2/xinrui/results/gaussian-splatting/blender/nerf_synthetic/drums'])
     args = parser.parse_args()
     evaluate(args.model_paths)
