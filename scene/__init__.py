@@ -15,8 +15,10 @@ import json
 from utils.system_utils import searchForMaxIteration
 from scene.dataset_readers import sceneLoadTypeCallbacks
 from scene.gaussian_model import GaussianModel
+from scene.tensoRF import TensorVMSplit
 from arguments import ModelParams
 from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from utils.tensorf_utils import N_to_reso, cal_n_samples
 
 class Scene:
 
@@ -80,7 +82,11 @@ class Scene:
                                                            "iteration_" + str(self.loaded_iter),
                                                            "point_cloud.ply"))
         else:
-            self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
+            aabb = scene_info.scene_bbox.to(device='cuda')
+            reso_cur = N_to_reso(args.N_voxel_init, aabb)
+            # nSamples = min(args.nSamples, cal_n_samples(reso_cur,args.step_ratio))  # comment because of no use. "Number of samples per ray"
+            self.tensorVMsplit = TensorVMSplit(aabb, reso_cur, device='cuda', density_n_comp=args.n_lamb_sigma, appearance_n_comp=args.n_lamb_sh)
+            self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)  #, tensorVMsplit)
 
     def save(self, iteration):
         point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))

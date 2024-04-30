@@ -47,13 +47,34 @@ class ParamGroup:
 class ModelParams(ParamGroup): 
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
-        self._source_path = "/data2/xinrui/dataset/data/nerf_synthetic/drums"
-        self._model_path = "/data2/xinrui/results/gaussian-splatting/blender/nerf_synthetic/drums"
+        self._source_path = "/data2/xinrui/dataset/data/nerf_synthetic/lego"
+        self._model_path = "/data2/xinrui/results/gaussian-splatting/blender/nerf_synthetic/lego-GSRF"
         self._images = "images"
         self._resolution = -1
         self._white_background = True
         self.data_device = "cuda"
         self.eval = True
+
+        self.N_voxel_init = 2097156 # 128**3
+        self.N_voxel_final = 27000000 # 300**3
+        self.upsamp_list = [2000,3000,4000,5500,7000]
+        self.update_AlphaMask_list = [2000,4000]
+
+        self.N_vis = 5
+        self.vis_every = 10000
+
+        self.render_test = 1
+
+        self.n_lamb_sigma = [16,16,16]
+        self.n_lamb_sh = [48,48,48]
+        self.model_name = 'TensorVMSplit'
+
+        self.shadingMode = 'MLP_Fea'
+        self.fea2denseAct = 'softplus'
+
+        self.view_pe = 2
+        self.fea_pe = 2
+
         super().__init__(parser, "Loading Parameters", sentinel)
 
     def extract(self, args):
@@ -87,6 +108,15 @@ class OptimizationParams(ParamGroup):
         self.densify_until_iter = 15_000
         self.densify_grad_threshold = 0.0002
         self.random_background = False
+
+        self.lr_init = 0.02
+        self.lr_basis = 0.001
+        self.lr_decay_iters = -1
+        self.lr_decay_target_ratio = 0.1
+        self.lr_upsample_reset = 1
+        self.L1_weight_inital = 8e-5
+        self.L1_weight_rest = 4e-5
+        self.rm_weight_mask_thre = 1e-4
         super().__init__(parser, "Optimization Parameters")
 
 def get_combined_args(parser : ArgumentParser):

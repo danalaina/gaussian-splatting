@@ -22,6 +22,7 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
+import numpy as np
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -34,6 +35,20 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
+    grad_vars = scene.tensorVMsplit.get_optparam_groups(opt.lr_init, opt.lr_basis)
+    if opt.lr_decay_iters > 0:
+        lr_factor = opt.lr_decay_target_ratio**(1/opt.lr_decay_iters)
+    else:
+        opt.lr_decay_iters = opt.iterations
+        lr_factor = opt.lr_decay_target_ratio**(1/opt.iterations)
+
+    print("TensorVMsplit lr decay", opt.lr_decay_target_ratio, opt.lr_decay_iters)
+    
+    tensorVMsplit_optimizer = torch.optim.Adam(grad_vars, betas=(0.9,0.99))
+
+    #linear in logrithmic space
+    N_voxel_list = (torch.round(torch.exp(torch.linspace(np.log(args.N_voxel_init), np.log(args.N_voxel_final), len(args.upsamp_list)+1))).long()).tolist()[1:]
+
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
         gaussians.restore(model_params, opt)
@@ -66,7 +81,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
-        gaussians.update_learning_rate(iteration)
+        gaussians.update_learning_rate(iteration)  # only update the learning rate of the gaussian xyz
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
         if iteration % 1000 == 0:
@@ -83,7 +98,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
-        render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
+        render_pkg = render(viewpoint_cam, gaussians, pipe, bg, scene.tensorVMsplit)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
 
         # Loss

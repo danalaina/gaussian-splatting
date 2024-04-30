@@ -22,6 +22,7 @@ from pathlib import Path
 from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
+import torch
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -41,6 +42,7 @@ class SceneInfo(NamedTuple):
     test_cameras: list
     nerf_normalization: dict
     ply_path: str
+    scene_bbox: np.array
 
 def getNerfppNorm(cam_info):
     def get_center_and_diag(cam_centers):
@@ -231,6 +233,7 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
     ply_path = os.path.join(path, "points3d.ply")
+    scene_bbox = torch.Tensor([[-1.3, -1.3, -1.3], [1.3, 1.3, 1.3]])
     if not os.path.exists(ply_path):
         # Since this data set has no colmap data, we start with random points
         num_pts = 100_000
@@ -251,7 +254,8 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
                            nerf_normalization=nerf_normalization,
-                           ply_path=ply_path)
+                           ply_path=ply_path,
+                           scene_bbox=scene_bbox)
     return scene_info
 
 sceneLoadTypeCallbacks = {
