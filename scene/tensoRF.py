@@ -1,4 +1,5 @@
 from .tensorBase import *
+from utils.general_utils import inverse_sigmoid
 
 
 class TensorVM(TensorBase):
@@ -8,7 +9,7 @@ class TensorVM(TensorBase):
 
     def init_svd_volume(self, res, device):
         self.plane_coef = torch.nn.Parameter(
-            0.1 * torch.randn((3, self.app_n_comp + self.density_n_comp, res, res), device=device))
+            0.1 * torch.randn((3, self.app_n_comp + self.density_n_comp, res, res), device=device))  # original is torch.randn
         self.line_coef = torch.nn.Parameter(
             0.1 * torch.randn((3, self.app_n_comp + self.density_n_comp, res, 1), device=device))
         self.basis_mat = torch.nn.Linear(self.app_n_comp * 3, self.app_dim, bias=False, device=device)
@@ -143,8 +144,8 @@ class TensorVMSplit(TensorBase):
 
     def init_svd_volume(self, res, device):
         self.density_plane, self.density_line = self.init_one_svd(self.density_n_comp, self.gridSize, 0.1, device)
-        self.app_plane, self.app_line = self.init_one_svd(self.app_n_comp, self.gridSize, 0.1, device)
-        self.basis_mat = torch.nn.Linear(sum(self.app_n_comp), self.app_dim, bias=False).to(device)
+        # self.app_plane, self.app_line = self.init_one_svd(self.app_n_comp, self.gridSize, 0.1, device)
+        # self.basis_mat = torch.nn.Linear(sum(self.app_n_comp), self.app_dim, bias=False).to(device)
 
 
     def init_one_svd(self, n_component, gridSize, scale, device):
@@ -163,8 +164,9 @@ class TensorVMSplit(TensorBase):
 
     def get_optparam_groups(self, lr_init_spatialxyz = 0.02, lr_init_network = 0.001):
         grad_vars = [{'params': self.density_line, 'lr': lr_init_spatialxyz}, {'params': self.density_plane, 'lr': lr_init_spatialxyz},
-                     {'params': self.app_line, 'lr': lr_init_spatialxyz}, {'params': self.app_plane, 'lr': lr_init_spatialxyz},
-                         {'params': self.basis_mat.parameters(), 'lr':lr_init_network}]
+                    #  {'params': self.app_line, 'lr': lr_init_spatialxyz}, {'params': self.app_plane, 'lr': lr_init_spatialxyz},
+                    #  {'params': self.basis_mat.parameters(), 'lr':lr_init_network}
+                         ]
         # if isinstance(self.renderModule, torch.nn.Module):
         #     grad_vars += [{'params':self.renderModule.parameters(), 'lr':lr_init_network}]
         return grad_vars
@@ -217,7 +219,7 @@ class TensorVMSplit(TensorBase):
                                             align_corners=True).view(-1, *xyz_sampled.shape[:1])
             sigma_feature = sigma_feature + torch.sum(plane_coef_point * line_coef_point, dim=0)
 
-        return sigma_feature
+        return torch.sigmoid(sigma_feature)
 
 
     def compute_appfeature(self, xyz_sampled):

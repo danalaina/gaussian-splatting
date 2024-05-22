@@ -48,7 +48,7 @@ class ModelParams(ParamGroup):
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
         self._source_path = "/data2/xinrui/dataset/data/nerf_synthetic/lego"
-        self._model_path = "/data2/xinrui/results/gaussian-splatting/blender/nerf_synthetic/lego-GSRF"
+        self._model_path = "/home/xinrui/results/gaussian-splatting/blender/nerf_synthetic/lego-GSRF-0521-fix_resetOpacity"
         self._images = "images"
         self._resolution = -1
         self._white_background = True
