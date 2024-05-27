@@ -218,6 +218,8 @@ class GaussianModel:
         # self._opacity = optimizable_tensors["opacity"]
         # note: no grad required
         normalized_coord = tensorVMsplit.normalize_coord(self._xyz)
+        mask = (normalized_coord >= -1) & (normalized_coord < 1)
+        normalized_coord = normalized_coord[mask.all(dim=1)]
         opacity = tensorVMsplit.compute_densityfeature(normalized_coord)
         mod_coord = normalized_coord[opacity>0.01]
         interval = 2 / (tensorVMsplit.gridSize[0].item() - 1)
@@ -228,6 +230,7 @@ class GaussianModel:
         coordinate_line = torch.stack((mod_coord_idx[..., tensorVMsplit.vecMode[0]], mod_coord_idx[..., tensorVMsplit.vecMode[1]], mod_coord_idx[..., tensorVMsplit.vecMode[2]]))
         coordinate_line = torch.stack((torch.zeros_like(coordinate_line), coordinate_line), dim=-1).detach().view(3, -1, 1, 2)
         min_coord = torch.floor(torch.flip(coordinate_plane, [-1]))
+        min_coord_line = torch.floor(coordinate_line)
         # sigma_feature = torch.zeros((xyz_sampled.shape[0],), device=xyz_sampled.device)
         for idx_plane in range(len(tensorVMsplit.density_plane)):
             compact_min_coord = min_coord[idx_plane].squeeze(1).long()
@@ -236,8 +239,14 @@ class GaussianModel:
             offsets = torch.tensor([[0, 0], [0, 1], [1, 0], [1, 1]], device=compact_min_coord.device)
             cube_indices_h = h_indices.view(-1, 1) + offsets[:, 0]
             cube_indices_w = w_indices.view(-1, 1) + offsets[:, 1]
-            values = tensorVMsplit.density_plane[idx_plane][0, :, cube_indices_h, cube_indices_w]
-            
+            # a = torch.reshape(cube_indices_h, (cube_indices_h.numel(),))
+            # b = torch.reshape(cube_indices_w, (cube_indices_w.numel(),))
+            # valid_indices = torch.stack((a, b), dim=-1).unique(dim=0)
+
+            tensorVMsplit.density_plane[idx_plane][:, :, cube_indices_h, cube_indices_w] /= 100
+
+            compact_min_coord_line = min_coord_line[idx_plane].squeeze(1).long()
+            w_indices_line = compact_min_coord_line[:,1]
 
 
         #     plane_coef_point = F.grid_sample(tensorVMsplit.density_plane[idx_plane], coordinate_plane[[idx_plane]],
@@ -363,7 +372,7 @@ class GaussianModel:
 
         return optimizable_tensors
 
-    def densification_postfix(self, new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, tensorVMsplit, tensorVMsplit_optimizer):
+    def densification_postfix(self, new_xyz, new_features_dc, new_features_rest, new_scaling, new_rotation, tensorVMsplit, tensorVMsplit_optimizer):
         d = {"xyz": new_xyz,
         "f_dc": new_features_dc,
         "f_rest": new_features_rest,

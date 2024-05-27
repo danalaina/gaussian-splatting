@@ -23,6 +23,7 @@ from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
 import numpy as np
+from utils.tensorf_utils import N_to_reso, cal_n_samples
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -45,7 +46,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     print("TensorVMsplit lr decay", opt.lr_decay_target_ratio, opt.lr_decay_iters)
     
     tensorVMsplit_optimizer = torch.optim.Adam(grad_vars, betas=(0.9,0.99))
-
+    reso_cur = N_to_reso(args.N_voxel_init, scene.tensorVMsplit.aabb)
     #linear in logrithmic space
     N_voxel_list = (torch.round(torch.exp(torch.linspace(np.log(args.N_voxel_init), np.log(args.N_voxel_final), len(args.upsamp_list)+1))).long()).tolist()[1:]
 
@@ -134,8 +135,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                     gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, scene.tensorVMsplit, tensorVMsplit_optimizer, opacity)
                 
-                if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
-                    gaussians.reset_opacity(scene.tensorVMsplit)
+                # if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
+                #     gaussians.reset_opacity(scene.tensorVMsplit)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -143,6 +144,41 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 tensorVMsplit_optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none = True) # 
                 tensorVMsplit_optimizer.zero_grad(set_to_none = True)
+
+            # update grid from TensoRF
+            if iteration in dataset.update_AlphaMask_list:
+                
+                if reso_cur[0] * reso_cur[1] * reso_cur[2]<256**3:# update volume resolution
+                    reso_mask = reso_cur
+                new_aabb = scene.tensorVMsplit.updateAlphaMask(tuple(reso_mask))
+                if iteration == dataset.update_AlphaMask_list[0]:
+                    scene.tensorVMsplit.shrink(new_aabb)
+                    # tensorVM.alphaMask = None
+                    L1_reg_weight = args.L1_weight_rest
+                    print("continuing L1_reg_weight", L1_reg_weight)
+
+                # if not args.ndc_ray and iteration == dataset.update_AlphaMask_list[1]:
+                #     # filter rays outside the bbox
+                #     allrays,allrgbs = tensorf.filtering_rays(allrays,allrgbs)
+                #     trainingSampler = SimpleSampler(allrgbs.shape[0], args.batch_size)
+
+
+            if iteration in dataset.upsamp_list:
+                n_voxels = N_voxel_list.pop(0)
+                reso_cur = N_to_reso(n_voxels, scene.tensorVMsplit.aabb)
+                # nSamples = min(args.nSamples, cal_n_samples(reso_cur,args.step_ratio))
+                scene.tensorVMsplit.upsample_volume_grid(reso_cur)
+
+                if args.lr_upsample_reset:
+                    print("reset lr to initial")
+                    lr_scale = 1 #0.1 ** (iteration / args.n_iters)
+                else:
+                    lr_scale = args.lr_decay_target_ratio ** (iteration / args.n_iters)
+                grad_vars = scene.tensorVMsplit.get_optparam_groups(args.lr_init*lr_scale, args.lr_basis*lr_scale)
+                tensorVMsplit_optimizer = torch.optim.Adam(grad_vars, betas=(0.9, 0.99))
+
+
+
 
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))

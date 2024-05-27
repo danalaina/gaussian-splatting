@@ -138,7 +138,7 @@ class MLPRender(torch.nn.Module):
 class TensorBase(torch.nn.Module):
     def __init__(self, aabb, gridSize, device, density_n_comp = 8, appearance_n_comp = 24, app_dim = 27,
                     shadingMode = 'MLP_PE', alphaMask = None, near_far=[2.0,6.0],
-                    density_shift = -10, alphaMask_thres=0.001, distance_scale=25, rayMarch_weight_thres=0.0001,
+                    density_shift = -10, alphaMask_thres=0.005, distance_scale=25, rayMarch_weight_thres=0.0001,
                     pos_pe = 6, view_pe = 6, fea_pe = 6, featureC=128, step_ratio=2.0,
                     fea2denseAct = 'softplus'):
         super(TensorBase, self).__init__()
@@ -314,7 +314,7 @@ class TensorBase(torch.nn.Module):
         # print(self.stepSize, self.distance_scale*self.aabbDiag)
         alpha = torch.zeros_like(dense_xyz[...,0])
         for i in range(gridSize[0]):
-            alpha[i] = self.compute_alpha(dense_xyz[i].view(-1,3), self.stepSize).view((gridSize[1], gridSize[2]))
+            alpha[i] = self.compute_opacity(dense_xyz[i].view(-1,3), self.stepSize).view((gridSize[1], gridSize[2]))
         return alpha, dense_xyz
 
     @torch.no_grad()
@@ -405,6 +405,24 @@ class TensorBase(torch.nn.Module):
 
         return alpha
 
+    def compute_opacity(self, xyz_locs, length=1):
+
+        if self.alphaMask is not None:
+            alphas = self.alphaMask.sample_alpha(xyz_locs)
+            alpha_mask = alphas > 0
+        else:
+            alpha_mask = torch.ones_like(xyz_locs[:,0], dtype=bool)
+            
+
+        opacity = torch.zeros(alpha_mask.shape, device=xyz_locs.device)
+
+        if alpha_mask.any():
+            xyz_sampled = self.normalize_coord(xyz_locs[alpha_mask])
+            valid_opacity = self.compute_densityfeature(xyz_sampled)
+        opacity[alpha_mask] = valid_opacity  
+        # alpha = 1 - torch.exp(-sigma*length).view(xyz_locs.shape[:-1])
+
+        return opacity
 
     def forward(self, rays_chunk, white_bg=True, is_train=False, ndc_ray=False, N_samples=-1):
 
