@@ -19,6 +19,7 @@ from scene.tensoRF import TensorVMSplit
 from arguments import ModelParams
 from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
 from utils.tensorf_utils import N_to_reso, cal_n_samples
+import torch
 
 class Scene:
 
@@ -81,6 +82,11 @@ class Scene:
                                                            "point_cloud",
                                                            "iteration_" + str(self.loaded_iter),
                                                            "point_cloud.ply"))
+            ckpt = torch.load(os.path.join(self.model_path, f"chkpnt{self.loaded_iter}tensorVM.pth"))
+            aabb = ckpt[2]
+            reso_cur = ckpt[3]
+            self.tensorVMsplit = TensorVMSplit(aabb, reso_cur, device='cuda', density_n_comp=args.n_lamb_sigma, appearance_n_comp=args.n_lamb_sh)
+            self.tensorVMsplit.load_state_dict(ckpt[0])
         else:
             aabb = scene_info.scene_bbox.to(device='cuda')
             reso_cur = N_to_reso(args.N_voxel_init, aabb)

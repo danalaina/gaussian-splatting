@@ -68,7 +68,7 @@ class GaussianModel:
             self._features_rest,
             self._scaling,
             self._rotation,
-            self._opacity,
+            # self._opacity,
             self.max_radii2D,
             self.xyz_gradient_accum,
             self.denom,
@@ -83,7 +83,7 @@ class GaussianModel:
         self._features_rest,
         self._scaling, 
         self._rotation, 
-        self._opacity,
+        # self._opacity,
         self.max_radii2D, 
         xyz_gradient_accum, 
         denom,
@@ -435,9 +435,7 @@ class GaussianModel:
         new_rotation = self._rotation[selected_pts_mask]
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_scaling, new_rotation, tensorVMsplit, tensorVMsplit_optimizer)
-        tensorVMsplit_optimizer
         
-        print('pass')
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, tensorVMsplit : TensorVMSplit, tensorVMsplit_optimizer, opacity):
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0

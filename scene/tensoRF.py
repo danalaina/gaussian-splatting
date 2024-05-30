@@ -147,6 +147,8 @@ class TensorVMSplit(TensorBase):
         # self.app_plane, self.app_line = self.init_one_svd(self.app_n_comp, self.gridSize, 0.1, device)
         # self.basis_mat = torch.nn.Linear(sum(self.app_n_comp), self.app_dim, bias=False).to(device)
 
+    def capture(self):
+        return (self.density_plane, self.density_line)
 
     def init_one_svd(self, n_component, gridSize, scale, device):
         plane_coef, line_coef = [], []
@@ -214,9 +216,9 @@ class TensorVMSplit(TensorBase):
         sigma_feature = torch.zeros((xyz_sampled.shape[0],), device=xyz_sampled.device)
         for idx_plane in range(len(self.density_plane)):
             plane_coef_point = F.grid_sample(self.density_plane[idx_plane], coordinate_plane[[idx_plane]],
-                                                align_corners=True).view(-1, *xyz_sampled.shape[:1])
+                                                align_corners=True, padding_mode='border').view(-1, *xyz_sampled.shape[:1])
             line_coef_point = F.grid_sample(self.density_line[idx_plane], coordinate_line[[idx_plane]],
-                                            align_corners=True).view(-1, *xyz_sampled.shape[:1])
+                                            align_corners=True, padding_mode='border').view(-1, *xyz_sampled.shape[:1])
             sigma_feature = sigma_feature + torch.sum(plane_coef_point * line_coef_point, dim=0)
 
         return torch.sigmoid(sigma_feature)
@@ -292,13 +294,13 @@ class TensorVMSplit(TensorBase):
             # )
 
 
-        if not torch.all(self.alphaMask.gridSize == self.gridSize):
-            t_l_r, b_r_r = t_l / (self.gridSize-1), (b_r-1) / (self.gridSize-1)
-            correct_aabb = torch.zeros_like(new_aabb)
-            correct_aabb[0] = (1-t_l_r)*self.aabb[0] + t_l_r*self.aabb[1]
-            correct_aabb[1] = (1-b_r_r)*self.aabb[0] + b_r_r*self.aabb[1]
-            print("aabb", new_aabb, "\ncorrect aabb", correct_aabb)
-            new_aabb = correct_aabb
+        # if not torch.all(self.alphaMask.gridSize == self.gridSize):
+        t_l_r, b_r_r = t_l / (self.gridSize-1), (b_r-1) / (self.gridSize-1)
+        correct_aabb = torch.zeros_like(new_aabb)
+        correct_aabb[0] = (1-t_l_r)*self.aabb[0] + t_l_r*self.aabb[1]
+        correct_aabb[1] = (1-b_r_r)*self.aabb[0] + b_r_r*self.aabb[1]
+        print("aabb", new_aabb, "\ncorrect aabb", correct_aabb)
+        new_aabb = correct_aabb
 
         newSize = b_r - t_l
         self.aabb = new_aabb

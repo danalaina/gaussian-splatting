@@ -150,7 +150,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 
                 if reso_cur[0] * reso_cur[1] * reso_cur[2]<256**3:# update volume resolution
                     reso_mask = reso_cur
-                new_aabb = scene.tensorVMsplit.updateAlphaMask(tuple(reso_mask))
+                # new_aabb = scene.tensorVMsplit.updateAlphaMask(tuple(reso_mask))
+                new_aabb = torch.stack((gaussians._xyz.min(axis=0).values, gaussians._xyz.max(axis=0).values),axis=0)
                 if iteration == dataset.update_AlphaMask_list[0]:
                     scene.tensorVMsplit.shrink(new_aabb)
                     # tensorVM.alphaMask = None
@@ -183,6 +184,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+                torch.save((scene.tensorVMsplit.state_dict(), iteration, scene.tensorVMsplit.aabb, reso_cur), scene.model_path + "/chkpnt" + str(iteration) + "tensorVM.pth")
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[1_000, 5_000, 8_000, 10_000, 30_000]) # 7k
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[1_000, 5_000, 8_000, 10_000, 30_000]) # 7k
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
+    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[1_000,10_000, 30_000])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)

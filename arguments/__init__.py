@@ -48,7 +48,7 @@ class ModelParams(ParamGroup):
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
         self._source_path = "/home/danica01/raid1-data1/dan/dataset/nerf_synthetic/lego"
-        self._model_path = "/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego-GSRF-0527"
+        self._model_path = "/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego4-GSRF-0529"
         self._images = "images"
         self._resolution = -1
         self._white_background = True
