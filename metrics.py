@@ -98,6 +98,6 @@ if __name__ == "__main__":
 
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
-    parser.add_argument('--model_paths', '-m', nargs="+", type=str, default=['/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego4-GSRF-0529'])
+    parser.add_argument('--model_paths', '-m', nargs="+", type=str, default=['/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego-plus-scale'])
     args = parser.parse_args()
     evaluate(args.model_paths)

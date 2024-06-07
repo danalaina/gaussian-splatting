@@ -279,7 +279,7 @@ class TensorVMSplit(TensorBase):
 
     @torch.no_grad()
     def upsample_volume_grid(self, res_target):
-        # self.app_plane, self.app_line = self.up_sampling_VM(self.app_plane, self.app_line, res_target)
+        self.app_plane, self.app_line = self.up_sampling_VM(self.app_plane, self.app_line, res_target)
         self.density_plane, self.density_line = self.up_sampling_VM(self.density_plane, self.density_line, res_target)
 
         self.update_stepSize(res_target)
@@ -300,16 +300,16 @@ class TensorVMSplit(TensorBase):
             self.density_line[i] = torch.nn.Parameter(
                 self.density_line[i].data[...,t_l[mode0]:b_r[mode0],:]
             )
-            # self.app_line[i] = torch.nn.Parameter(
-            #     self.app_line[i].data[...,t_l[mode0]:b_r[mode0],:]
-            # )
+            self.app_line[i] = torch.nn.Parameter(
+                self.app_line[i].data[...,t_l[mode0]:b_r[mode0],:]
+            )
             mode0, mode1 = self.matMode[i]
             self.density_plane[i] = torch.nn.Parameter(
                 self.density_plane[i].data[...,t_l[mode1]:b_r[mode1],t_l[mode0]:b_r[mode0]]
             )
-            # self.app_plane[i] = torch.nn.Parameter(
-            #     self.app_plane[i].data[...,t_l[mode1]:b_r[mode1],t_l[mode0]:b_r[mode0]]
-            # )
+            self.app_plane[i] = torch.nn.Parameter(
+                self.app_plane[i].data[...,t_l[mode1]:b_r[mode1],t_l[mode0]:b_r[mode0]]
+            )
 
 
         # if not torch.all(self.alphaMask.gridSize == self.gridSize):
