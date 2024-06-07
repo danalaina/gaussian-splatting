@@ -100,7 +100,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, scene.tensorVMsplit)
-        image, viewspace_point_tensor, visibility_filter, radii, opacity = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"]
+        image, viewspace_point_tensor, visibility_filter, radii, opacity, scales = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"], render_pkg["scales"]
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
@@ -133,7 +133,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, scene.tensorVMsplit, tensorVMsplit_optimizer, opacity)
+                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, scene.tensorVMsplit, tensorVMsplit_optimizer, opacity, scales)
                 
                 # if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                 #     gaussians.reset_opacity(scene.tensorVMsplit)
@@ -252,13 +252,13 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
-    parser.add_argument('--port', type=int, default=6009)
+    parser.add_argument('--port', type=int, default=6007)
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[1_000, 5_000, 8_000, 10_000, 30_000]) # 7k
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[1_000, 5_000, 8_000, 10_000, 30_000]) # 7k
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2_000, 5_000, 10_000, 20_000, 30_000]) # 7k
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2_000, 5_000, 10_000, 20_000, 30_000]) # 7k
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[1_000,10_000, 30_000])
+    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[2_000, 5_000, 10_000, 20_000, 30_000])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)

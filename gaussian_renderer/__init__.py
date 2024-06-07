@@ -57,16 +57,16 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     means2D = screenspace_points
     # opacity = pc.get_opacity
     opacity = tensorVMsplit.compute_densityfeature(tensorVMsplit.normalize_coord(means3D)).unsqueeze(1)
-
+    scales = tensorVMsplit.compute_scalefeature(tensorVMsplit.normalize_coord(means3D))
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
-    scales = None
+    # scales = None
     rotations = None
     cov3D_precomp = None
     if pipe.compute_cov3D_python:
         cov3D_precomp = pc.get_covariance(scaling_modifier)
     else:
-        scales = pc.get_scaling
+        # scales = pc.get_scaling
         rotations = pc.get_rotation
 
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
@@ -102,4 +102,5 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
             "radii": radii,
-            "opacity": opacity}
+            "opacity": opacity,
+            "scales": scales,}
