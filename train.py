@@ -100,7 +100,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, scene.tensorVMsplit)
-        image, viewspace_point_tensor, visibility_filter, radii, opacity, scales = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"], render_pkg["scales"]
+        image, viewspace_point_tensor, visibility_filter, radii, opacity, scales, rots = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"], render_pkg["scales"], render_pkg["rotations"]
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
@@ -133,7 +133,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, scene.tensorVMsplit, tensorVMsplit_optimizer, opacity, scales)
+                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, scene.tensorVMsplit, tensorVMsplit_optimizer, opacity, scales, rots)
                 
                 # if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                 #     gaussians.reset_opacity(scene.tensorVMsplit)
@@ -152,7 +152,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     reso_mask = reso_cur
                 # new_aabb = scene.tensorVMsplit.updateAlphaMask(tuple(reso_mask))
                 new_aabb = torch.stack((gaussians._xyz.min(axis=0).values, gaussians._xyz.max(axis=0).values),axis=0)
-                if iteration == dataset.update_AlphaMask_list[0]:
+                if iteration in dataset.update_AlphaMask_list:
                     scene.tensorVMsplit.shrink(new_aabb)
                     # tensorVM.alphaMask = None
                     L1_reg_weight = args.L1_weight_rest
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
-    parser.add_argument('--port', type=int, default=6007)
+    parser.add_argument('--port', type=int, default=6005)
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[2_000, 5_000, 10_000, 20_000, 30_000]) # 7k
