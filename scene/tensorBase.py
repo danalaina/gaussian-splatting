@@ -136,7 +136,7 @@ class MLPRender(torch.nn.Module):
 
 
 class TensorBase(torch.nn.Module):
-    def __init__(self, aabb, gridSize, device, density_n_comp = 8, appearance_n_comp = 24, app_dim = 3, rot_dim = 4,
+    def __init__(self, aabb, gridSize, device, density_n_comp = 8, appearance_n_comp = 24, app_dim = 3, rot_dim = 4, feat_dim = 48, 
                     shadingMode = 'MLP_PE', alphaMask = None, near_far=[2.0,6.0],
                     density_shift = -10, alphaMask_thres=0.5, distance_scale=25, rayMarch_weight_thres=0.0001,
                     pos_pe = 6, view_pe = 6, fea_pe = 6, featureC=128, step_ratio=2.0,
@@ -147,6 +147,8 @@ class TensorBase(torch.nn.Module):
         self.app_n_comp = appearance_n_comp
         self.app_dim = app_dim
         self.rot_dim = rot_dim
+        self.feat_dim = feat_dim
+        # self.feat_rest_dim = feat_rest_dim
         self.aabb = aabb
         self.alphaMask = alphaMask
         self.device=device
@@ -197,7 +199,7 @@ class TensorBase(torch.nn.Module):
         self.aabbSize = self.aabb[1] - self.aabb[0]
         self.invaabbSize = 2.0/self.aabbSize
         self.gridSize= torch.LongTensor(gridSize).to(self.device)
-        self.units=self.aabbSize / (self.gridSize-1)
+        self.units=self.aabbSize / self.gridSize  # should be self.gridSize -- XR, original is self.aabbSize / (self.gridSize-1)
         self.stepSize=torch.mean(self.units)*self.step_ratio
         self.aabbDiag = torch.sqrt(torch.sum(torch.square(self.aabbSize)))
         self.nSamples=int((self.aabbDiag / self.stepSize).item()) + 1

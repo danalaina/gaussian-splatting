@@ -48,7 +48,7 @@ class ModelParams(ParamGroup):
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
         self._source_path = "/home/danica01/raid1-data1/dan/dataset/nerf_synthetic/lego"
-        self._model_path = "/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego-plus-scale-rotation-sh-0610"
+        self._model_path = "/home/danica01/raid1-data1/dan/results/gaussian-splatting/blender/nerf_synthetic/lego-plus-scale-rotation-sh-0711"
         self._images = "images"
         self._resolution = -1
         self._white_background = False
@@ -66,7 +66,8 @@ class ModelParams(ParamGroup):
         self.render_test = 1
 
         self.n_lamb_sigma = [16,16,16]
-        self.n_lamb_sh = [48,48,48]
+        # self.n_lamb_sh = [48,48,48]
+        self.n_lamb_sh = [16,16,16]
         self.model_name = 'TensorVMSplit'
 
         self.shadingMode = 'MLP_Fea'

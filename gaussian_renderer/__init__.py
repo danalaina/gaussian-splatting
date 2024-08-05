@@ -83,7 +83,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             sh2rgb = eval_sh(pc.active_sh_degree, shs_view, dir_pp_normalized)
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         else:
-            shs = pc.get_features
+            # shs = pc.get_features
+            shs = tensorVMsplit.compute_featfeature(tensorVMsplit.normalize_coord(means3D)).view(-1, tensorVMsplit.feat_dim//3, 3)
     else:
         colors_precomp = override_color
 
@@ -106,4 +107,5 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "radii": radii,
             "opacity": opacity,
             "scales": scales,
-            "rotations": rotations,}
+            "rotations": rotations,
+            "shs_feat": shs,}

@@ -45,7 +45,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     print("TensorVMsplit lr decay", opt.lr_decay_target_ratio, opt.lr_decay_iters)
     
-    tensorVMsplit_optimizer = torch.optim.Adam(grad_vars, betas=(0.9,0.99))
+    tensorVMsplit_optimizer = torch.optim.Adam(grad_vars)
     reso_cur = N_to_reso(args.N_voxel_init, scene.tensorVMsplit.aabb)
     #linear in logrithmic space
     N_voxel_list = (torch.round(torch.exp(torch.linspace(np.log(args.N_voxel_init), np.log(args.N_voxel_final), len(args.upsamp_list)+1))).long()).tolist()[1:]
@@ -100,7 +100,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, scene.tensorVMsplit)
-        image, viewspace_point_tensor, visibility_filter, radii, opacity, scales, rots = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"], render_pkg["scales"], render_pkg["rotations"]
+        image, viewspace_point_tensor, visibility_filter, radii, opacity, scales, rots, shs_feat = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["opacity"], render_pkg["scales"], render_pkg["rotations"], render_pkg["shs_feat"]
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
@@ -176,7 +176,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 else:
                     lr_scale = args.lr_decay_target_ratio ** (iteration / args.n_iters)
                 grad_vars = scene.tensorVMsplit.get_optparam_groups(args.lr_init*lr_scale, args.lr_basis*lr_scale)
-                tensorVMsplit_optimizer = torch.optim.Adam(grad_vars, betas=(0.9, 0.99))
+                tensorVMsplit_optimizer = torch.optim.Adam(grad_vars)
 
 
 
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
-    parser.add_argument('--port', type=int, default=6005)
+    parser.add_argument('--port', type=int, default=6006)
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[2_000, 5_000, 10_000, 20_000, 30_000]) # 7k
